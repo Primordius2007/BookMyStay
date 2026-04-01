@@ -1,3 +1,8 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -179,6 +184,22 @@ public class BookMyStay {
         System.out.println("Single: " + sharedInventory.getRoomAvailability().get("Single"));
         System.out.println("Double: " + sharedInventory.getRoomAvailability().get("Double"));
         System.out.println("Suite: " + sharedInventory.getRoomAvailability().get("Suite"));
+
+        // UC12
+        System.out.println("\nSystem Recovery");
+
+        RoomInventory inventory12 = new RoomInventory();
+        FilePersistenceService persistenceService = new FilePersistenceService();
+        String filePath = "inventory.txt";
+
+        persistenceService.loadInventory(inventory12, filePath);
+
+        System.out.println("\nCurrent Inventory:");
+        System.out.println("Single: " + inventory12.getRoomAvailability().get("Single"));
+        System.out.println("Double: " + inventory12.getRoomAvailability().get("Double"));
+        System.out.println("Suite: " + inventory12.getRoomAvailability().get("Suite"));
+
+        persistenceService.saveInventory(inventory12, filePath);
     }
 }
 
@@ -450,6 +471,41 @@ class ConcurrentBookingProcessor implements Runnable {
             synchronized (inventory) {
                 allocationService.allocateRoom(reservation, inventory);
             }
+        }
+    }
+}
+
+class FilePersistenceService {
+    public void saveInventory(RoomInventory inventory, String filePath) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+            for (Map.Entry<String, Integer> entry : inventory.getRoomAvailability().entrySet()) {
+                writer.write(entry.getKey() + "=" + entry.getValue());
+                writer.newLine();
+            }
+            System.out.println("Inventory saved successfully.");
+        } catch (IOException e) {
+            System.out.println("Error saving inventory: " + e.getMessage());
+        }
+    }
+
+    public void loadInventory(RoomInventory inventory, String filePath) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            boolean loaded = false;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split("=");
+                if (parts.length == 2) {
+                    inventory.updateAvailability(parts[0].trim(), Integer.parseInt(parts[1].trim()));
+                    loaded = true;
+                }
+            }
+            if (loaded) {
+                System.out.println("Inventory loaded successfully.");
+            } else {
+                System.out.println("No valid inventory data found. Starting fresh.");
+            }
+        } catch (IOException e) {
+            System.out.println("No valid inventory data found. Starting fresh.");
         }
     }
 }
