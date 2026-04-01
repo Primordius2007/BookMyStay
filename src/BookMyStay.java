@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.Stack;
 
 public class BookMyStay {
     public static void main(String[] args) {
@@ -135,6 +136,19 @@ public class BookMyStay {
         } finally {
             scanner.close();
         }
+
+        // UC10
+        System.out.println("\nBooking Cancellation");
+
+        CancellationService cancellationService = new CancellationService();
+        cancellationService.registerBooking("Single-1", "Single");
+        cancellationService.cancelBooking("Single-1", inventory);
+
+        System.out.println();
+        cancellationService.showRollbackHistory();
+
+        System.out.println();
+        System.out.println("Updated Single Room Availability: " + inventory.getRoomAvailability().get("Single"));
     }
 }
 
@@ -296,9 +310,7 @@ class AddOnServiceManager {
     public double calculateTotalServiceCost(String reservationId) {
         List<Service> services = servicesByReservation.getOrDefault(reservationId, new ArrayList<>());
         double total = 0;
-        for (Service s : services) {
-            total += s.getCost();
-        }
+        for (Service s : services) total += s.getCost();
         return total;
     }
 }
@@ -338,6 +350,45 @@ class ReservationValidator {
 
         if (inventory.getRoomAvailability().getOrDefault(roomType, 0) <= 0) {
             throw new InvalidBookingException("No rooms available for type: " + roomType);
+        }
+    }
+}
+
+class CancellationService {
+    private Stack<String> releasedRoomIds;
+    private Map<String, String> reservationRoomTypeMap;
+
+    public CancellationService() {
+        releasedRoomIds = new Stack<>();
+        reservationRoomTypeMap = new HashMap<>();
+    }
+
+    public void registerBooking(String reservationId, String roomType) {
+        reservationRoomTypeMap.put(reservationId, roomType);
+    }
+
+    public void cancelBooking(String reservationId, RoomInventory inventory) {
+        if (!reservationRoomTypeMap.containsKey(reservationId)) {
+            System.out.println("Cancellation failed: Reservation ID " + reservationId + " not found.");
+            return;
+        }
+
+        String roomType = reservationRoomTypeMap.get(reservationId);
+        releasedRoomIds.push(reservationId);
+        reservationRoomTypeMap.remove(reservationId);
+
+        int current = inventory.getRoomAvailability().getOrDefault(roomType, 0);
+        inventory.updateAvailability(roomType, current + 1);
+
+        System.out.println("Booking cancelled successfully. Inventory restored for room type: " + roomType);
+    }
+
+    public void showRollbackHistory() {
+        System.out.println("Rollback History (Most Recent First):");
+        Stack<String> temp = new Stack<>();
+        temp.addAll(releasedRoomIds);
+        while (!temp.isEmpty()) {
+            System.out.println("Released Reservation ID: " + temp.pop());
         }
     }
 }
