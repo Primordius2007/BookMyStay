@@ -98,6 +98,17 @@ public class BookMyStay {
 
         System.out.println("Reservation ID: Single-1");
         System.out.println("Total Add-On Cost: " + serviceManager.calculateTotalServiceCost("Single-1"));
+
+        // UC8
+        BookingHistory bookingHistory = new BookingHistory();
+        bookingHistory.addReservation(new Reservation("Abhi", "Single"));
+        bookingHistory.addReservation(new Reservation("Subha", "Double"));
+        bookingHistory.addReservation(new Reservation("Vanmathi", "Suite"));
+
+        BookingReportService reportService = new BookingReportService();
+
+        System.out.println("\nBooking History and Reporting");
+        reportService.generateReport(bookingHistory);
     }
 }
 
@@ -263,5 +274,24 @@ class AddOnServiceManager {
             total += s.getCost();
         }
         return total;
+    }
+}
+
+class BookingHistory {
+    private List<Reservation> confirmedReservations;
+
+    public BookingHistory() { confirmedReservations = new ArrayList<>(); }
+
+    public void addReservation(Reservation reservation) { confirmedReservations.add(reservation); }
+
+    public List<Reservation> getConfirmedReservations() { return confirmedReservations; }
+}
+
+class BookingReportService {
+    public void generateReport(BookingHistory history) {
+        System.out.println("\nBooking History Report");
+        for (Reservation r : history.getConfirmedReservations()) {
+            System.out.println("Guest: " + r.getGuestName() + ", Room Type: " + r.getRoomType());
+        }
     }
 }
