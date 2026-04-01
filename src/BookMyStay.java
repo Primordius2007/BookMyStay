@@ -1,6 +1,8 @@
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -62,13 +64,9 @@ public class BookMyStay {
 
         BookingRequestQueue bookingQueue = new BookingRequestQueue();
 
-        Reservation r1 = new Reservation("Abhi", "Single");
-        Reservation r2 = new Reservation("Subha", "Single");
-        Reservation r3 = new Reservation("Vanmathi", "Suite");
-
-        bookingQueue.addRequest(r1);
-        bookingQueue.addRequest(r2);
-        bookingQueue.addRequest(r3);
+        bookingQueue.addRequest(new Reservation("Abhi", "Single"));
+        bookingQueue.addRequest(new Reservation("Subha", "Double"));
+        bookingQueue.addRequest(new Reservation("Vanmathi", "Suite"));
 
         while (bookingQueue.hasPendingRequests()) {
             Reservation r = bookingQueue.getNextRequest();
@@ -89,6 +87,17 @@ public class BookMyStay {
             Reservation r = bookingQueue2.getNextRequest();
             allocationService.allocateRoom(r, inventory);
         }
+
+        // UC7
+        System.out.println("\nAdd-On Service Selection");
+
+        AddOnServiceManager serviceManager = new AddOnServiceManager();
+
+        serviceManager.addService("Single-1", new Service("Breakfast", 500.0));
+        serviceManager.addService("Single-1", new Service("Airport Pickup", 1000.0));
+
+        System.out.println("Reservation ID: Single-1");
+        System.out.println("Total Add-On Cost: " + serviceManager.calculateTotalServiceCost("Single-1"));
     }
 }
 
@@ -222,5 +231,37 @@ class RoomAllocationService {
     private String generateRoomId(String roomType) {
         int count = assignedRoomsByType.getOrDefault(roomType, new HashSet<>()).size() + 1;
         return roomType + "-" + count;
+    }
+}
+
+class Service {
+    private String serviceName;
+    private double cost;
+
+    public Service(String serviceName, double cost) {
+        this.serviceName = serviceName;
+        this.cost = cost;
+    }
+
+    public String getServiceName() { return serviceName; }
+    public double getCost() { return cost; }
+}
+
+class AddOnServiceManager {
+    private Map<String, List<Service>> servicesByReservation;
+
+    public AddOnServiceManager() { servicesByReservation = new HashMap<>(); }
+
+    public void addService(String reservationId, Service service) {
+        servicesByReservation.computeIfAbsent(reservationId, k -> new ArrayList<>()).add(service);
+    }
+
+    public double calculateTotalServiceCost(String reservationId) {
+        List<Service> services = servicesByReservation.getOrDefault(reservationId, new ArrayList<>());
+        double total = 0;
+        for (Service s : services) {
+            total += s.getCost();
+        }
+        return total;
     }
 }
