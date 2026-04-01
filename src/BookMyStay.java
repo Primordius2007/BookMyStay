@@ -149,6 +149,36 @@ public class BookMyStay {
 
         System.out.println();
         System.out.println("Updated Single Room Availability: " + inventory.getRoomAvailability().get("Single"));
+
+        // UC11
+        System.out.println("\nConcurrent Booking Simulation");
+
+        RoomInventory sharedInventory = new RoomInventory();
+        BookingRequestQueue sharedQueue = new BookingRequestQueue();
+        RoomAllocationService sharedAllocationService = new RoomAllocationService();
+
+        sharedQueue.addRequest(new Reservation("Abhi", "Single"));
+        sharedQueue.addRequest(new Reservation("Vanmathi", "Double"));
+        sharedQueue.addRequest(new Reservation("Kural", "Suite"));
+        sharedQueue.addRequest(new Reservation("Subha", "Single"));
+
+        Thread t1 = new Thread(new ConcurrentBookingProcessor(sharedQueue, sharedInventory, sharedAllocationService));
+        Thread t2 = new Thread(new ConcurrentBookingProcessor(sharedQueue, sharedInventory, sharedAllocationService));
+
+        t1.start();
+        t2.start();
+
+        try {
+            t1.join();
+            t2.join();
+        } catch (InterruptedException e) {
+            System.out.println("Thread execution interrupted.");
+        }
+
+        System.out.println("\nRemaining Inventory:");
+        System.out.println("Single: " + sharedInventory.getRoomAvailability().get("Single"));
+        System.out.println("Double: " + sharedInventory.getRoomAvailability().get("Double"));
+        System.out.println("Suite: " + sharedInventory.getRoomAvailability().get("Suite"));
     }
 }
 
@@ -389,6 +419,37 @@ class CancellationService {
         temp.addAll(releasedRoomIds);
         while (!temp.isEmpty()) {
             System.out.println("Released Reservation ID: " + temp.pop());
+        }
+    }
+}
+
+class ConcurrentBookingProcessor implements Runnable {
+    private BookingRequestQueue bookingQueue;
+    private RoomInventory inventory;
+    private RoomAllocationService allocationService;
+
+    public ConcurrentBookingProcessor(
+            BookingRequestQueue bookingQueue,
+            RoomInventory inventory,
+            RoomAllocationService allocationService) {
+        this.bookingQueue = bookingQueue;
+        this.inventory = inventory;
+        this.allocationService = allocationService;
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            Reservation reservation;
+
+            synchronized (bookingQueue) {
+                if (!bookingQueue.hasPendingRequests()) break;
+                reservation = bookingQueue.getNextRequest();
+            }
+
+            synchronized (inventory) {
+                allocationService.allocateRoom(reservation, inventory);
+            }
         }
     }
 }
